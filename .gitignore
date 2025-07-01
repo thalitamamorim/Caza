@@ -1,0 +1,6 @@
+.DS_Store
+*.db
+*.pdf
+__pycache__/
+relatorios/
+relatorios_mensais/
