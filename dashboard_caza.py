@@ -255,10 +255,9 @@ def main():
     hoje = datetime.now().strftime("%Y-%m-%d")
 
     # Carregar logo
-    LOGO_PATH = "/Users/thalitaamorim/Desktop/CAZA/IMG_5950.jpg"
     try:
-        logo = Image.open(LOGO_PATH)
-        st.sidebar.image(logo, use_container_width=True)
+        logo = Image.open("IMG_5950.jpg")  # ajuste o caminho se necessário
+        st.image(logo, width=200)  # ajuste o width conforme preferir
     except:
         st.sidebar.warning("Logo não encontrada")
 
