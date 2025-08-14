@@ -1,12 +1,13 @@
-.DS_Store
-*.db
-*.pdf
+# Python
+venv*/
 __pycache__/
-relatorios/
-relatorios_mensais/
-caza.db
+*.py[cod]
+*.so
+.Python
+
+# Virtualenv
 venv_caza/
-venv_caza/
-venv_caza/
-__pycache__/
-*.pyc
+
+# IDE
+.vscode/
+.idea/
