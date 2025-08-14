@@ -27,6 +27,7 @@ def configurar_banco_dados():
 def verificar_estrutura_bd(cursor):
     """Verifica e corrige a estrutura do banco de dados"""
     alteracoes = [
+        ("insumos", "estoque_atual", "REAL"),
         ("gastos_insumos", "quantidade", "REAL"),
         ("gastos_insumos", "tipo", "TEXT"),
         ("gastos_insumos", "unidade_medida", "TEXT"),
@@ -325,16 +326,12 @@ def main():
             with st.form("form_insumo", clear_on_submit=True):
                 col1, col2 = st.columns(2)
                 with col1:
-                    nome = st.text_input(
-                        "Nome do Insumo*", placeholder="Ex: Farinha, Açúcar")
+                    nome = st.text_input("Nome do Insumo*", placeholder="Ex: Farinha, Açúcar")
                 with col2:
-                    unidade = st.selectbox(
-                        "Unidade de Medida*", ["kg", "g", "L", "ml", "un", "cx", "pct"])
-
-                estoque_minimo = st.number_input(
-                    "Estoque Mínimo", min_value=0.0, step=0.1)
+                    unidade = st.selectbox("Unidade de Medida*", ["kg", "g", "L", "ml", "un", "cx", "pct"])
+                estoque_minimo = st.number_input("Estoque Mínimo", min_value=0.0, step=0.1)
+                estoque_atual = st.number_input("Estoque Atual", min_value=0.0, step=0.1)
                 observacao = st.text_area("Observações")
-
                 submitted = st.form_submit_button("💾 Cadastrar Insumo")
                 if submitted:
                     if not nome.strip():
@@ -344,10 +341,51 @@ def main():
                             "nome": nome.strip(),
                             "unidade_medida": unidade,
                             "estoque_minimo": estoque_minimo,
+                            "estoque_atual": estoque_atual,
                             "observacao": observacao.strip()
                         }):
                             st.success("✅ Insumo cadastrado com sucesso!")
-                            st.balloons()
+                            st.rerun()
+
+            st.markdown("---")
+            st.subheader("🗂️ Insumos Cadastrados")
+
+            df_insumos = pd.read_sql_query(
+                "SELECT id, nome, unidade_medida, estoque_minimo, estoque_atual, observacao FROM insumos ORDER BY nome", conn)
+
+            if not df_insumos.empty:
+                for idx, row in df_insumos.iterrows():
+                    col1, col2, col3 = st.columns([4, 1, 1])
+                    with col1:
+                        estoque_atual = row['estoque_atual'] if row['estoque_atual'] is not None else 0.0
+                        estoque_minimo = row['estoque_minimo'] if row['estoque_minimo'] is not None else 0.0
+                        st.write(f"**{row['nome']}** ({row['unidade_medida']}) | Estoque Atual: {estoque_atual:.2f} | Mínimo: {estoque_minimo:.2f}")
+                        if row['observacao']:
+                            st.caption(f"Obs: {row['observacao']}")
+                    with col2:
+                        if st.button(f"✏️ Editar", key=f"edit_{row['id']}"):
+                            novo_nome = st.text_input("Novo nome", value=row['nome'], key=f"novo_nome_{row['id']}")
+                            nova_unidade = st.text_input("Nova unidade", value=row['unidade_medida'], key=f"nova_unidade_{row['id']}")
+                            novo_minimo = st.number_input("Novo estoque mínimo", value=row['estoque_minimo'], key=f"novo_minimo_{row['id']}")
+                            novo_atual = st.number_input("Novo estoque atual", value=row['estoque_atual'], key=f"novo_atual_{row['id']}")
+                            nova_obs = st.text_input("Nova observação", value=row['observacao'], key=f"nova_obs_{row['id']}")
+                            if st.button("Salvar alterações", key=f"salvar_{row['id']}"):
+                                editar_registro(cursor, "insumos", row['id'], {
+                                    "nome": novo_nome,
+                                    "unidade_medida": nova_unidade,
+                                    "estoque_minimo": novo_minimo,
+                                    "estoque_atual": novo_atual,
+                                    "observacao": nova_obs
+                                })
+                                st.success("✅ Insumo editado com sucesso!")
+                                st.rerun()
+                    with col3:
+                        if st.button(f"🗑️ Excluir", key=f"del_{row['id']}"):
+                            deletar_registro(cursor, "insumos", row['id'])
+                            st.success("✅ Insumo excluído!")
+                            st.rerun()
+            else:
+                st.info("Nenhum insumo cadastrado.")
 
         with tab2:
             st.subheader("Registrar Baixa de Estoque")
@@ -395,9 +433,14 @@ def main():
                                 "unidade_medida": unidade,
                                 "observacao": motivo.strip()
                             }):
-                                st.success(
-                                    f"✅ Baixa de {quantidade} {unidade} de {insumo_selecionado} registrada!")
-                                st.experimental_rerun()
+                                # Atualiza o estoque atual do insumo
+                                cursor.execute(
+                                    "UPDATE insumos SET estoque_atual = estoque_atual - ? WHERE nome = ?",
+                                    (quantidade, insumo_selecionado)
+                                )
+                                conn.commit()
+                                st.success(f"✅ Baixa de {quantidade} {unidade} de {insumo_selecionado} registrada!")
+                                st.rerun()
             else:
                 st.warning("Cadastre insumos antes de registrar baixas")
 
@@ -409,15 +452,13 @@ def main():
                     SELECT 
                         i.nome AS Insumo,
                         i.unidade_medida AS Unidade,
-                        COALESCE(SUM(g.quantidade), 0) AS Estoque_Atual,
+                        i.estoque_atual AS Estoque_Atual,
                         i.estoque_minimo AS Estoque_Mínimo,
                         CASE 
-                            WHEN COALESCE(SUM(g.quantidade), 0) <= i.estoque_minimo THEN '⚠️ Repor'
+                            WHEN i.estoque_atual <= i.estoque_minimo THEN '⚠️ Repor'
                             ELSE '✅ OK'
                         END AS Status
                     FROM insumos i
-                    LEFT JOIN gastos_insumos g ON i.nome = g.item
-                    GROUP BY i.id
                     ORDER BY Status DESC, i.nome
                 ''', conn)
 
@@ -502,7 +543,7 @@ def main():
                     )
                     conn.commit()
                     st.success("✅ Saldo inicial salvo com sucesso!")
-                    st.experimental_rerun()
+                    st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro ao salvar: {str(e)}")
 
@@ -551,7 +592,7 @@ def main():
                             "nome_cliente": ""
                         }):
                             st.success("✅ Recebimento registrado com sucesso!")
-                            st.experimental_rerun()
+                            st.rerun()
 
         elif opcao_lancamento == "👥 Consumo por Cliente":
             with st.form("form_consumo", clear_on_submit=True):
@@ -590,7 +631,7 @@ def main():
                             "observacao": observacao.strip()
                         }):
                             st.success("✅ Consumo registrado com sucesso!")
-                            st.experimental_rerun()
+                            st.rerun()
 
         elif opcao_lancamento == "🛒 Gasto com Insumos":
             df_insumos = pd.read_sql_query(
@@ -642,7 +683,7 @@ def main():
                         }):
                             st.success(
                                 "✅ Gasto com insumo registrado com sucesso!")
-                            st.experimental_rerun()
+                            st.rerun()
 
         elif opcao_lancamento == "🏢 Gasto Fixo":
             with st.form("form_gasto_fixo", clear_on_submit=True):
@@ -677,7 +718,7 @@ def main():
                             "tipo": tipo_evento_fixo.strip() if tipo_evento_fixo.strip() else "fixo"
                         }):
                             st.success("✅ Gasto fixo registrado com sucesso!")
-                            st.experimental_rerun()
+                            st.rerun()
 
         # Resumo financeiro do dia
         st.markdown("---")

@@ -50,7 +50,7 @@ oauthlib==3.2.2
 packaging==23.2
 pandas==2.2.3
 parso==0.8.4
-pillow==9.5.0
+pillow==10.4.0
 pkginfo==1.10.0
 protobuf==6.30.2
 pyarrow==20.0.0
