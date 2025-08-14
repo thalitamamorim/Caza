@@ -6,3 +6,7 @@ relatorios/
 relatorios_mensais/
 caza.db
 venv_caza/
+venv_caza/
+venv_caza/
+__pycache__/
+*.pyc

@@ -326,11 +326,15 @@ def main():
             with st.form("form_insumo", clear_on_submit=True):
                 col1, col2 = st.columns(2)
                 with col1:
-                    nome = st.text_input("Nome do Insumo*", placeholder="Ex: Farinha, Açúcar")
+                    nome = st.text_input(
+                        "Nome do Insumo*", placeholder="Ex: Farinha, Açúcar")
                 with col2:
-                    unidade = st.selectbox("Unidade de Medida*", ["kg", "g", "L", "ml", "un", "cx", "pct"])
-                estoque_minimo = st.number_input("Estoque Mínimo", min_value=0.0, step=0.1)
-                estoque_atual = st.number_input("Estoque Atual", min_value=0.0, step=0.1)
+                    unidade = st.selectbox(
+                        "Unidade de Medida*", ["kg", "g", "L", "ml", "un", "cx", "pct"])
+                estoque_minimo = st.number_input(
+                    "Estoque Mínimo", min_value=0.0, step=0.1)
+                estoque_atual = st.number_input(
+                    "Estoque Atual", min_value=0.0, step=0.1)
                 observacao = st.text_area("Observações")
                 submitted = st.form_submit_button("💾 Cadastrar Insumo")
                 if submitted:
@@ -359,16 +363,22 @@ def main():
                     with col1:
                         estoque_atual = row['estoque_atual'] if row['estoque_atual'] is not None else 0.0
                         estoque_minimo = row['estoque_minimo'] if row['estoque_minimo'] is not None else 0.0
-                        st.write(f"**{row['nome']}** ({row['unidade_medida']}) | Estoque Atual: {estoque_atual:.2f} | Mínimo: {estoque_minimo:.2f}")
+                        st.write(
+                            f"**{row['nome']}** ({row['unidade_medida']}) | Estoque Atual: {estoque_atual:.2f} | Mínimo: {estoque_minimo:.2f}")
                         if row['observacao']:
                             st.caption(f"Obs: {row['observacao']}")
                     with col2:
                         if st.button(f"✏️ Editar", key=f"edit_{row['id']}"):
-                            novo_nome = st.text_input("Novo nome", value=row['nome'], key=f"novo_nome_{row['id']}")
-                            nova_unidade = st.text_input("Nova unidade", value=row['unidade_medida'], key=f"nova_unidade_{row['id']}")
-                            novo_minimo = st.number_input("Novo estoque mínimo", value=row['estoque_minimo'], key=f"novo_minimo_{row['id']}")
-                            novo_atual = st.number_input("Novo estoque atual", value=row['estoque_atual'], key=f"novo_atual_{row['id']}")
-                            nova_obs = st.text_input("Nova observação", value=row['observacao'], key=f"nova_obs_{row['id']}")
+                            novo_nome = st.text_input(
+                                "Novo nome", value=row['nome'], key=f"novo_nome_{row['id']}")
+                            nova_unidade = st.text_input(
+                                "Nova unidade", value=row['unidade_medida'], key=f"nova_unidade_{row['id']}")
+                            novo_minimo = st.number_input(
+                                "Novo estoque mínimo", value=row['estoque_minimo'], key=f"novo_minimo_{row['id']}")
+                            novo_atual = st.number_input(
+                                "Novo estoque atual", value=row['estoque_atual'], key=f"novo_atual_{row['id']}")
+                            nova_obs = st.text_input(
+                                "Nova observação", value=row['observacao'], key=f"nova_obs_{row['id']}")
                             if st.button("Salvar alterações", key=f"salvar_{row['id']}"):
                                 editar_registro(cursor, "insumos", row['id'], {
                                     "nome": novo_nome,
@@ -439,7 +449,8 @@ def main():
                                     (quantidade, insumo_selecionado)
                                 )
                                 conn.commit()
-                                st.success(f"✅ Baixa de {quantidade} {unidade} de {insumo_selecionado} registrada!")
+                                st.success(
+                                    f"✅ Baixa de {quantidade} {unidade} de {insumo_selecionado} registrada!")
                                 st.rerun()
             else:
                 st.warning("Cadastre insumos antes de registrar baixas")
